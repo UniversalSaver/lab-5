@@ -247,10 +247,6 @@ public class MongoGradeDataBase implements GradeDataBase {
     }
 
     @Override
-    // TODO Task 3b: Implement this method
-    //       Hint: Read the Grade API documentation for getMyTeam (link below) and refer to the above similar
-    //             methods to help you write this code (copy-and-paste + edit as needed).
-    //             https://www.postman.com/cloudy-astronaut-813156/csc207-grade-apis-demo/folder/isr2ymn/get-my-team
     public Team getMyTeam() {
         final OkHttpClient client = new OkHttpClient().newBuilder()
                 .build();
@@ -261,37 +257,26 @@ public class MongoGradeDataBase implements GradeDataBase {
                 .addHeader(CONTENT_TYPE, APPLICATION_JSON)
                 .build();
 
-        final Response response;
-        final JSONObject responseBody;
+        String teamName = "";
+        String[] teamMembers = {};
 
-        // HINT 1: Look at the formTeam method to get an idea on how to parse the response
-        // HINT 2: You may find it useful to just initially print the contents of the JSON
-        //         then work on the details of how to parse it.
         try {
-            response = client.newCall(request).execute();
-            responseBody = new JSONObject(response.body().string());
+            final Response response = client.newCall(request).execute();
+            final JSONObject responseBody = new JSONObject(response.body().string());
+            final JSONObject JSONTeam = responseBody.getJSONObject("team");
 
             if (responseBody.getInt(STATUS_CODE) == SUCCESS_CODE) {
-                // The API likely returns something like: { "status_code":200, "team":{...} }
-                final JSONObject team = responseBody.getJSONObject("team");
-                final JSONArray membersArray = team.getJSONArray("members");
-                final String[] members = new String[membersArray.length()];
+                final JSONArray teamMates = JSONTeam.getJSONArray("members");
+                teamMembers = new String[teamMates.length()];
 
-                for (int i = 0; i < membersArray.length(); i++) {
-                    members[i] = membersArray.getString(i);
+                for (int i = 0; i < teamMates.length(); i++) {
+                    teamMembers[i] = teamMates.getString(i);
                 }
-
-                return Team.builder()
-                        .name(team.getString(NAME))
-                        .members(members)
-                        .build();
+                teamName = JSONTeam.getString(NAME);
             }
-            else {
-                throw new RuntimeException(responseBody.getString(MESSAGE));
-            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        catch (IOException | JSONException event) {
-            throw new RuntimeException(event);
-        }
+        return new Team(teamName, teamMembers);
     }
 }
